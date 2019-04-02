@@ -1,0 +1,10 @@
+﻿  sample.cpp
+c:\users\sanlador\documents\cs 553\sample2017\sample.cpp(493): warning C4305: 'argument': truncation from 'double' to 'GLfloat'
+c:\users\sanlador\documents\cs 553\sample2017\sample.cpp(920): warning C4244: '+=': conversion from 'double' to 'float', possible loss of data
+c:\users\sanlador\documents\cs 553\sample2017\sample.cpp(941): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\sanlador\documents\cs 553\sample2017\sample.cpp(942): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\sanlador\documents\cs 553\sample2017\sample.cpp(943): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\sanlador\documents\cs 553\sample2017\sample.cpp(967): warning C4305: '=': truncation from 'double' to 'float'
+c:\users\sanlador\documents\cs 553\sample2017\sample.cpp(970): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+sample.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/INCREMENTAL:NO' specification
+  Sample.vcxproj -> C:\Users\Sanlador\Documents\CS 553\Sample2017\.\Debug\Sample.exe
