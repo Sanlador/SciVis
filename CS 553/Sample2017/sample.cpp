@@ -1,7 +1,8 @@
 #include <stdio.h>
+#include <iostream>
 #include <stdlib.h>
 #include <ctype.h>
-#include <iostream>
+
 #define _USE_MATH_DEFINES
 #include <math.h>
 
@@ -17,30 +18,37 @@
 #include "glui.h"
 
 //MARK Inserted code
-#define TEMP	0
+#define TEMP	7
 #define SQR(x)		( (x) * (x) )
 
 const float TEMPMIN = { 0.f };
 const float TEMPMAX = { 100.f };
 const float GRAYMIN = { 0.20f };
 const float GRAYMAX = { 1.00f };
+const float GRADMIN = { -10000.f };
+const float GRADMAX = { 3000.f };
+const float DISTMIN = { 0.f };
+const float DISTMAX = { 1.6f };
 
-float			TempLowHigh[2];
-GLUI_HSlider *		TempSlider;
+const char *	TEMPFORMAT = { "Temperature: %5.2f - %5.2f" };
+const char *	GRADFORMAT = { "Gradient: %5.2f - %5.2f" };
+const char *	DISTFORMAT = { "Distance: %5.2f - %5.2f" };
+float			TempLowHigh[2] = { TEMPMIN, TEMPMAX };
+float			GradLowHigh[2] = { GRADMIN, GRADMAX };
+float			DistLowHigh[2] = { DISTMIN, DISTMAX };
 GLUI_StaticText *	TempLabel;
-const char *		TEMPFORMAT = { "Temperature: %5.2f - %5.2f" };
+GLUI_StaticText *	GradLabel;
 
 struct node
 {
 	float x, y, z;          // location
 	float t;                // temperature
-	float r, g, b;		// the assigned color
+	float r, g, b;			// the assigned color
 	float rad;              // radius
+	float dist;				//Distance from center
 	float dTdx, dTdy, dTdz;	// can store these if you want, or not
 	float grad;             // total gradient
 };
-
-
 
 //	This is a sample OpenGL / GLUT / GLUI program
 //
@@ -69,7 +77,7 @@ struct node
 
 // title of these windows:
 
-const char *WINDOWTITLE = { "Project 1, Richard Cunard" };
+const char *WINDOWTITLE = { "OpenGL / GLUT Sample -- Joe Graphics" };
 const char *GLUITITLE   = { "User Interface Window" };
 
 
@@ -181,6 +189,8 @@ const int GRIDSKIP = { 4 };
 #define Z	3
 #define R	4
 #define G	5
+#define GRAD 6
+#define DIST 8
 
 const char *SFORMAT = { "S: %.3f - %.3f" };
 const char *XFORMAT = { "X: %.3f - %.3f" };
@@ -193,13 +203,14 @@ const int SLIDERWIDTH = { 200 };
 
 
 // how much to divide the plane and volume:
+
 #define N	30
 #define NX	N
 #define NY	N
 #define NZ	N
 
-
 struct node  Nodes[NX][NY][NZ];
+
 // non-constant global variables:
 
 int		ActiveButton;			// current button that is down
@@ -263,7 +274,6 @@ void	Visibility( int );
 
 void	Axes( float );
 void	HsvRgb( float[3], float [3] );
-
 
 // main program:
 
@@ -374,38 +384,38 @@ Buttons( int id )
 void
 Display( )
 {
-	if( DebugOn != 0 )
+	if (DebugOn != 0)
 	{
-		fprintf( stderr, "Display\n" );
+		fprintf(stderr, "Display\n");
 	}
 
 
 	// set which window we want to do the graphics into:
 
-	glutSetWindow( MainWindow );
+	glutSetWindow(MainWindow);
 
 
 	// erase the background:
 
-	glDrawBuffer( GL_BACK );
-	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+	glDrawBuffer(GL_BACK);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glEnable( GL_DEPTH_TEST );
+	glEnable(GL_DEPTH_TEST);
 
 
 	// specify shading to be flat:
 
-	glShadeModel( GL_FLAT );
+	glShadeModel(GL_FLAT);
 
 
 	// set the viewport to a square centered in the window:
 
-	GLsizei vx = glutGet( GLUT_WINDOW_WIDTH );
-	GLsizei vy = glutGet( GLUT_WINDOW_HEIGHT );
+	GLsizei vx = glutGet(GLUT_WINDOW_WIDTH);
+	GLsizei vy = glutGet(GLUT_WINDOW_HEIGHT);
 	GLsizei v = vx < vy ? vx : vy;			// minimum dimension
-	GLint xl = ( vx - v ) / 2;
-	GLint yb = ( vy - v ) / 2;
-	glViewport( xl, yb,  v, v );
+	GLint xl = (vx - v) / 2;
+	GLint yb = (vy - v) / 2;
+	glViewport(xl, yb, v, v);
 
 
 	// set the viewing volume:
@@ -413,72 +423,72 @@ Display( )
 	// given as DISTANCES IN FRONT OF THE EYE
 	// USE gluOrtho2D( ) IF YOU ARE DOING 2D !
 
-	glMatrixMode( GL_PROJECTION );
-	glLoadIdentity( );
-	if( WhichProjection == ORTHO )
-		glOrtho( -3., 3.,     -3., 3.,     0.1, 1000. );
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	if (WhichProjection == ORTHO)
+		glOrtho(-3., 3., -3., 3., 0.1, 1000.);
 	else
-		gluPerspective( 90., 1.,	0.1, 1000. );
+		gluPerspective(90., 1., 0.1, 1000.);
 
 
 	// place the objects into the scene:
 
-	glMatrixMode( GL_MODELVIEW );
-	glLoadIdentity( );
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
 
 
 	// set the eye position, look-at position, and up-vector:
 
-	gluLookAt( 0., 0., 3.,     0., 0., 0.,     0., 1., 0. );
+	gluLookAt(0., 0., 3., 0., 0., 0., 0., 1., 0.);
 
 
 	// rotate the scene:
 
-	glRotatef( (GLfloat)Yrot, 0., 1., 0. );
-	glRotatef( (GLfloat)Xrot, 1., 0., 0. );
+	glRotatef((GLfloat)Yrot, 0., 1., 0.);
+	glRotatef((GLfloat)Xrot, 1., 0., 0.);
 
 
 	// uniformly scale the scene:
 
-	if( Scale < MINSCALE )
+	if (Scale < MINSCALE)
 		Scale = MINSCALE;
-	glScalef( (GLfloat)Scale, (GLfloat)Scale, (GLfloat)Scale );
+	glScalef((GLfloat)Scale, (GLfloat)Scale, (GLfloat)Scale);
 	float scale2 = 1.f + Scale2;           // because glui translation starts at 0
-	if( scale2 < MINSCALE )
+	if (scale2 < MINSCALE)
 		scale2 = MINSCALE;
-	glScalef( scale2, scale2, scale2 );
+	glScalef(scale2, scale2, scale2);
 
 
 
 	// set the fog parameters:
 
-	if( DepthCueOn != 0 )
+	if (DepthCueOn != 0)
 	{
-		glFogi( GL_FOG_MODE, FOGMODE );
-		glFogfv( GL_FOG_COLOR, FOGCOLOR );
-		glFogf( GL_FOG_DENSITY, FOGDENSITY );
-		glFogf( GL_FOG_START, FOGSTART );
-		glFogf( GL_FOG_END, FOGEND );
-		glEnable( GL_FOG );
+		glFogi(GL_FOG_MODE, FOGMODE);
+		glFogfv(GL_FOG_COLOR, FOGCOLOR);
+		glFogf(GL_FOG_DENSITY, FOGDENSITY);
+		glFogf(GL_FOG_START, FOGSTART);
+		glFogf(GL_FOG_END, FOGEND);
+		glEnable(GL_FOG);
 	}
 	else
 	{
-		glDisable( GL_FOG );
+		glDisable(GL_FOG);
 	}
 
 
 	// possibly draw the axes:
 
-	if( AxesOn != 0 )
+	if (AxesOn != 0)
 	{
-		glColor3f( 1., 1., 1. );
-		glCallList( AxesList );
+		glColor3f(1., 1., 1.);
+		glCallList(AxesList);
 	}
 
 
 	// since we are using glScalef( ), be sure normals get unitized:
 
-	glEnable( GL_NORMALIZE );
+	glEnable(GL_NORMALIZE);
 
 
 	// draw the current object:
@@ -488,7 +498,7 @@ Display( )
 	float dz = BOXSIZE / 2.f;
 
 	// create the object:
-	
+
 	//Mark inserted draw
 	glPointSize(1. / (5. * N));
 	glBegin(GL_POINTS);
@@ -498,8 +508,24 @@ Display( )
 			continue;
 		for (int j = 0; j < N; j++)
 		{
+			if (Nodes[0][j][0].y < YLowHigh[0] || Nodes[0][j][0].y > YLowHigh[1])
+				continue;
 			for (int k = 0; k < N; k++)
 			{
+				if (Nodes[0][0][k].z < ZLowHigh[0] || Nodes[0][0][k].z > ZLowHigh[1])
+					continue;
+
+				if (Nodes[i][j][k].t <= TempLowHigh[0] || Nodes[i][j][k].t >= TempLowHigh[1])
+					continue;
+
+				if (Nodes[i][j][k].grad < GradLowHigh[0] || Nodes[i][k][j].grad > GradLowHigh[1])
+					continue;
+
+				if (Nodes[i][j][k].dist < DistLowHigh[0] || Nodes[i][k][j].dist > DistLowHigh[1])
+					continue;
+
+				//std::cout << TempLowHigh[0];
+
 				if (Grayscale)
 				{
 					float gray = GRAYMIN + (GRAYMAX - GRAYMIN) * (Nodes[i][j][k].t - TEMPMIN) / (TEMPMAX - TEMPMIN);
@@ -518,48 +544,48 @@ Display( )
 	/*
 	glBegin( GL_QUADS );
 
-		glColor3f( 0., 0., 1. );
-		glNormal3f( 0., 0.,  1. );
-			glVertex3f( -dx, -dy,  dz );
-			glVertex3f(  dx, -dy,  dz );
-			glVertex3f(  dx,  dy,  dz );
-			glVertex3f( -dx,  dy,  dz );
+	glColor3f( 0., 0., 1. );
+	glNormal3f( 0., 0.,  1. );
+	glVertex3f( -dx, -dy,  dz );
+	glVertex3f(  dx, -dy,  dz );
+	glVertex3f(  dx,  dy,  dz );
+	glVertex3f( -dx,  dy,  dz );
 
-		glNormal3f( 0., 0., -1. );
-			glTexCoord2f( 0., 0. );
-			glVertex3f( -dx, -dy, -dz );
-			glTexCoord2f( 0., 1. );
-			glVertex3f( -dx,  dy, -dz );
-			glTexCoord2f( 1., 1. );
-			glVertex3f(  dx,  dy, -dz );
-			glTexCoord2f( 1., 0. );
-			glVertex3f(  dx, -dy, -dz );
+	glNormal3f( 0., 0., -1. );
+	glTexCoord2f( 0., 0. );
+	glVertex3f( -dx, -dy, -dz );
+	glTexCoord2f( 0., 1. );
+	glVertex3f( -dx,  dy, -dz );
+	glTexCoord2f( 1., 1. );
+	glVertex3f(  dx,  dy, -dz );
+	glTexCoord2f( 1., 0. );
+	glVertex3f(  dx, -dy, -dz );
 
-		glColor3f( 1., 0., 0. );
-		glNormal3f(  1., 0., 0. );
-			glVertex3f(  dx, -dy,  dz );
-			glVertex3f(  dx, -dy, -dz );
-			glVertex3f(  dx,  dy, -dz );
-			glVertex3f(  dx,  dy,  dz );
+	glColor3f( 1., 0., 0. );
+	glNormal3f(  1., 0., 0. );
+	glVertex3f(  dx, -dy,  dz );
+	glVertex3f(  dx, -dy, -dz );
+	glVertex3f(  dx,  dy, -dz );
+	glVertex3f(  dx,  dy,  dz );
 
-		glNormal3f( -1., 0., 0. );
-			glVertex3f( -dx, -dy,  dz );
-			glVertex3f( -dx,  dy,  dz );
-			glVertex3f( -dx,  dy, -dz );
-			glVertex3f( -dx, -dy, -dz );
+	glNormal3f( -1., 0., 0. );
+	glVertex3f( -dx, -dy,  dz );
+	glVertex3f( -dx,  dy,  dz );
+	glVertex3f( -dx,  dy, -dz );
+	glVertex3f( -dx, -dy, -dz );
 
-		glColor3f( 0., 1., 0. );
-		glNormal3f( 0.,  1., 0. );
-			glVertex3f( -dx,  dy,  dz );
-			glVertex3f(  dx,  dy,  dz );
-			glVertex3f(  dx,  dy, -dz );
-			glVertex3f( -dx,  dy, -dz );
+	glColor3f( 0., 1., 0. );
+	glNormal3f( 0.,  1., 0. );
+	glVertex3f( -dx,  dy,  dz );
+	glVertex3f(  dx,  dy,  dz );
+	glVertex3f(  dx,  dy, -dz );
+	glVertex3f( -dx,  dy, -dz );
 
-		glNormal3f( 0., -1., 0. );
-			glVertex3f( -dx, -dy,  dz );
-			glVertex3f( -dx, -dy, -dz );
-			glVertex3f(  dx, -dy, -dz );
-			glVertex3f(  dx, -dy,  dz );
+	glNormal3f( 0., -1., 0. );
+	glVertex3f( -dx, -dy,  dz );
+	glVertex3f( -dx, -dy, -dz );
+	glVertex3f(  dx, -dy, -dz );
+	glVertex3f(  dx, -dy,  dz );
 
 	glEnd( );
 	*/
@@ -593,13 +619,13 @@ Display( )
 
 	// swap the double-buffered framebuffers:
 
-	glutSwapBuffers( );
+	glutSwapBuffers();
 
 
 	// be sure the graphics buffer has been sent:
 	// note: be sure to use glFlush( ) here, not glFinish( ) !
 
-	glFlush( );
+	glFlush();
 }
 
 
@@ -769,7 +795,7 @@ void
 InitGlui( )
 {
 	char str[256];
-	
+
 	if( DebugOn )
 		fprintf( stderr, "InitGlui\n" );
 
@@ -787,7 +813,6 @@ InitGlui( )
 	Glui->add_checkbox( "Grayscale", &Grayscale );
 
 	GLUI_Rollout * rollout = Glui->add_rollout( "Range Sliders", true );
-
 	GLUI_HSlider * slider = Glui->add_slider_to_panel( rollout, true, GLUI_HSLIDER_FLOAT, SLowHigh, S, (GLUI_Update_CB) Sliders );
 	slider->set_float_limits( SLowHigh[0], SLowHigh[1] );
 	slider->set_slider_val( SLowHigh[0], SLowHigh[1] );
@@ -837,11 +862,31 @@ InitGlui( )
 	Glui->add_separator_to_panel( rollout );
 
 	//Inserted Sliders
-	slider = Glui->add_slider(true, GLUI_HSLIDER_FLOAT, TempLowHigh, TEMP, (GLUI_Update_CB) Sliders);
-	slider->set_float_limits(TEMPMIN, TEMPMAX);
-	slider->set_w(200);		// good slider width
+
+	slider = Glui->add_slider_to_panel(rollout, true, GLUI_HSLIDER_FLOAT, TempLowHigh, TEMP, (GLUI_Update_CB)Sliders);
+	slider->set_float_limits(TempLowHigh[0], TempLowHigh[1]);
+	slider->set_slider_val(TempLowHigh[0], TempLowHigh[1]);
+	slider->set_w(SLIDERWIDTH);
 	sprintf(str, TEMPFORMAT, TempLowHigh[0], TempLowHigh[1]);
-	TempLabel = Glui->add_statictext(str);
+	TempLabel = Glui->add_statictext_to_panel(rollout, str);
+	Glui->add_separator_to_panel(rollout);
+
+	slider = Glui->add_slider_to_panel(rollout, true, GLUI_HSLIDER_FLOAT, GradLowHigh, GRAD, (GLUI_Update_CB)Sliders);
+	slider->set_float_limits(GradLowHigh[0], GradLowHigh[1]);
+	slider->set_slider_val(GradLowHigh[0], GradLowHigh[1]);
+	slider->set_w(SLIDERWIDTH);
+	sprintf(str, GRADFORMAT, GradLowHigh[0], GradLowHigh[1]);
+	TempLabel = Glui->add_statictext_to_panel(rollout, str);
+	Glui->add_separator_to_panel(rollout);
+		Glui->add_separator_to_panel(rollout);
+
+	slider = Glui->add_slider_to_panel(rollout, true, GLUI_HSLIDER_FLOAT, DistLowHigh, DIST, (GLUI_Update_CB)Sliders);
+	slider->set_float_limits(DistLowHigh[0], DistLowHigh[1]);
+	slider->set_slider_val(DistLowHigh[0], DistLowHigh[1]);
+	slider->set_w(SLIDERWIDTH);
+	sprintf(str, DISTFORMAT, DistLowHigh[0], DistLowHigh[1]);
+	TempLabel = Glui->add_statictext_to_panel(rollout, str);
+	Glui->add_separator_to_panel(rollout);
 
 	Glui->add_checkbox( "Perspective", &WhichProjection );
 
@@ -895,43 +940,10 @@ InitGlui( )
 // initialize the glut and OpenGL libraries:
 //	also setup display lists and callback functions
 
-struct centers
-{
-	float xc, yc, zc;	/* center location			*/
-	float a;		/* amplitude				*/
-} Centers[] =
-{
-	{	 1.00f,	 0.00f,	 0.00f,	 90.00f	},
-	{	-1.00f,	 0.30f,	 0.00f,	120.00f	},
-	{	 0.00f,	 1.00f,	 0.00f,	120.00f	},
-	{	 0.00f,	 0.40f,	 1.00f,	170.00f	},
-};
-
-float
-Temperature(float x, float y, float z)
-{
-	float t = 0.0;
-	for (int i = 0; i <= 3; i++)
-	{
-		float dx = x - Centers[i].xc;
-		float dy = y - Centers[i].yc;
-		float dz = z - Centers[i].zc;
-		float rsqd = SQR(dx) + SQR(dy) + SQR(dz);
-		t += Centers[i].a * exp(-5.*rsqd);
-	}
-
-	//std::cout << t;
-	if (t > TEMPMAX)
-		t = TEMPMAX;
-
-	return t;
-}
-
-
-
 void
 InitGraphics( )
 {
+
 	for (int i = 0; i < N; i++)
 	{
 		for (int j = 0; j < N; j++)
@@ -963,8 +975,11 @@ InitGraphics( )
 				else
 					Nodes[i][j][k].dTdz = (Nodes[i][j][k].t - Nodes[i][j][k - 1].t) / (Nodes[i][j][k].z - Nodes[i][j][k - 1].z);
 
+				Nodes[i][j][k].grad = sqrt(SQR(Nodes[i][j][k].dTdx) + SQR(Nodes[i][j][k].dTdy) + SQR(Nodes[i][j][k].dTdz));
 				Nodes[i][j][k].t = Temperature(Nodes[i][j][k].x, Nodes[i][j][k].y, Nodes[i][j][k].z);
 				Nodes[i][j][k].rad = 1. / (5. * N);
+
+				Nodes[i][j][k].dist = sqrt(SQR(Nodes[i][j][k].x) + SQR(Nodes[i][j][k].y) + SQR(Nodes[i][j][k].z));
 
 				float hsv[3], rgb[3];
 				hsv[0] = 240. - (240 * (Nodes[i][j][k].t - TEMPMIN) / (TEMPMAX - TEMPMIN));
@@ -979,21 +994,21 @@ InitGraphics( )
 	// request the display modes:
 	// ask for red-green-blue-alpha color, double-buffering, and z-buffering:
 
-	glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH );
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
 
 	// set the initial window configuration:
 
-	glutInitWindowPosition( 0, 0 );
-	glutInitWindowSize( INIT_WINDOW_SIZE, INIT_WINDOW_SIZE );
+	glutInitWindowPosition(0, 0);
+	glutInitWindowSize(INIT_WINDOW_SIZE, INIT_WINDOW_SIZE);
 
 	// open the window and set its title:
 
-	MainWindow = glutCreateWindow( WINDOWTITLE );
-	glutSetWindowTitle( WINDOWTITLE );
+	MainWindow = glutCreateWindow(WINDOWTITLE);
+	glutSetWindowTitle(WINDOWTITLE);
 
 	// set the framebuffer clear values:
 
-	glClearColor( BACKCOLOR[0], BACKCOLOR[1], BACKCOLOR[2], BACKCOLOR[3] );
+	glClearColor(BACKCOLOR[0], BACKCOLOR[1], BACKCOLOR[2], BACKCOLOR[3]);
 
 	// setup the callback functions:
 	// DisplayFunc -- redraw the window
@@ -1016,43 +1031,43 @@ InitGraphics( )
 	// TimerFunc -- trigger something to happen a certain time from now
 	// IdleFunc -- what to do when nothing else is going on
 
-	glutSetWindow( MainWindow );
-	glutDisplayFunc( Display );
-	glutReshapeFunc( Resize );
-	glutKeyboardFunc( Keyboard );
-	glutMouseFunc( MouseButton );
-	glutMotionFunc( MouseMotion );
-	glutPassiveMotionFunc( NULL );
-	glutVisibilityFunc( Visibility );
-	glutEntryFunc( NULL );
-	glutSpecialFunc( NULL );
-	glutSpaceballMotionFunc( NULL );
-	glutSpaceballRotateFunc( NULL );
-	glutSpaceballButtonFunc( NULL );
-	glutButtonBoxFunc( NULL );
-	glutDialsFunc( NULL );
-	glutTabletMotionFunc( NULL );
-	glutTabletButtonFunc( NULL );
-	glutMenuStateFunc( NULL );
-	glutTimerFunc( -1, NULL, 0 );
+	glutSetWindow(MainWindow);
+	glutDisplayFunc(Display);
+	glutReshapeFunc(Resize);
+	glutKeyboardFunc(Keyboard);
+	glutMouseFunc(MouseButton);
+	glutMotionFunc(MouseMotion);
+	glutPassiveMotionFunc(NULL);
+	glutVisibilityFunc(Visibility);
+	glutEntryFunc(NULL);
+	glutSpecialFunc(NULL);
+	glutSpaceballMotionFunc(NULL);
+	glutSpaceballRotateFunc(NULL);
+	glutSpaceballButtonFunc(NULL);
+	glutButtonBoxFunc(NULL);
+	glutDialsFunc(NULL);
+	glutTabletMotionFunc(NULL);
+	glutTabletButtonFunc(NULL);
+	glutMenuStateFunc(NULL);
+	glutTimerFunc(-1, NULL, 0);
 
 
-        // DO NOT SET THE GLUT IDLE FUNCTION HERE !!
-        // glutIdleFunc( NULL );
-        // let glui take care of it in InitGlui()
+	// DO NOT SET THE GLUT IDLE FUNCTION HERE !!
+	// glutIdleFunc( NULL );
+	// let glui take care of it in InitGlui()
 
 
 	// init glew (a window must be open to do this):
 
 #ifdef WIN32
-	GLenum err = glewInit( );
-	if( err != GLEW_OK )
+	GLenum err = glewInit();
+	if (err != GLEW_OK)
 	{
-		fprintf( stderr, "glewInit Error\n" );
+		fprintf(stderr, "glewInit Error\n");
 	}
 	else
-		fprintf( stderr, "GLEW initialized OK\n" );
-	fprintf( stderr, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+		fprintf(stderr, "GLEW initialized OK\n");
+	fprintf(stderr, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 #endif
 
 }
@@ -1294,6 +1309,21 @@ Sliders( int id )
 			sprintf( str, GFORMAT, GLowHigh[0], GLowHigh[1] );
 			GLabel->set_text( str );
 			break;
+
+		case TEMP:
+			sprintf(str, TEMPFORMAT, TempLowHigh[0], TempLowHigh[1]);
+			TempLabel->set_text(str);
+			break;
+
+		case GRAD:
+			sprintf(str, GRADFORMAT, GradLowHigh[0], GradLowHigh[1]);
+			TempLabel->set_text(str);
+			break;
+
+		case DIST:
+			sprintf(str, GRADFORMAT, DistLowHigh[0], DistLowHigh[1]);
+			TempLabel->set_text(str);
+			break;
 	}
 
 
@@ -1305,11 +1335,22 @@ Sliders( int id )
 // produce the scalar temperature value:
 
 
+struct centers
+{
+	float xc, yc, zc;	/* center location			*/
+	float a;		/* amplitude				*/
+} Centers[] =
+{
+	{	 1.00f,	 0.00f,	 0.00f,	 90.00f	},
+	{	-1.00f,	 0.30f,	 0.00f,	120.00f	},
+	{	 0.00f,	 1.00f,	 0.00f,	120.00f	},
+	{	 0.00f,	 0.40f,	 1.00f,	170.00f	},
+};
 
 const int NUMCENTERS = { sizeof(Centers) / sizeof(struct centers) };
 
 
-/*
+
 float
 Temperature( float x, float y, float z )
 {
@@ -1325,7 +1366,7 @@ Temperature( float x, float y, float z )
 
 	return s;
 }
-*/
+
 
 // handle a change to the window's visibility:
 
