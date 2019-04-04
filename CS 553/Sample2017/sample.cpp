@@ -25,19 +25,15 @@ const float TEMPMIN = { 0.f };
 const float TEMPMAX = { 100.f };
 const float GRAYMIN = { 0.20f };
 const float GRAYMAX = { 1.00f };
-const float GRADMIN = { -10000.f };
-const float GRADMAX = { 3000.f };
 const float DISTMIN = { 0.f };
-const float DISTMAX = { 1.6f };
+const float DISTMAX = { 1.7f };
 
 const char *	TEMPFORMAT = { "Temperature: %5.2f - %5.2f" };
-const char *	GRADFORMAT = { "Gradient: %5.2f - %5.2f" };
 const char *	DISTFORMAT = { "Distance: %5.2f - %5.2f" };
 float			TempLowHigh[2] = { TEMPMIN, TEMPMAX };
-float			GradLowHigh[2] = { GRADMIN, GRADMAX };
 float			DistLowHigh[2] = { DISTMIN, DISTMAX };
 GLUI_StaticText *	TempLabel;
-GLUI_StaticText *	GradLabel;
+GLUI_StaticText *	DistLabel;
 
 struct node
 {
@@ -189,7 +185,6 @@ const int GRIDSKIP = { 4 };
 #define Z	3
 #define R	4
 #define G	5
-#define GRAD 6
 #define DIST 8
 
 const char *SFORMAT = { "S: %.3f - %.3f" };
@@ -518,13 +513,12 @@ Display( )
 				if (Nodes[i][j][k].t <= TempLowHigh[0] || Nodes[i][j][k].t >= TempLowHigh[1])
 					continue;
 
-				if (Nodes[i][j][k].grad < GradLowHigh[0] || Nodes[i][k][j].grad > GradLowHigh[1])
+				if (Nodes[i][j][k].grad <= GLowHigh[0] || Nodes[i][k][j].grad > GLowHigh[1])
 					continue;
 
 				if (Nodes[i][j][k].dist < DistLowHigh[0] || Nodes[i][k][j].dist > DistLowHigh[1])
 					continue;
 
-				//std::cout << TempLowHigh[0];
 
 				if (Grayscale)
 				{
@@ -871,21 +865,12 @@ InitGlui( )
 	TempLabel = Glui->add_statictext_to_panel(rollout, str);
 	Glui->add_separator_to_panel(rollout);
 
-	slider = Glui->add_slider_to_panel(rollout, true, GLUI_HSLIDER_FLOAT, GradLowHigh, GRAD, (GLUI_Update_CB)Sliders);
-	slider->set_float_limits(GradLowHigh[0], GradLowHigh[1]);
-	slider->set_slider_val(GradLowHigh[0], GradLowHigh[1]);
-	slider->set_w(SLIDERWIDTH);
-	sprintf(str, GRADFORMAT, GradLowHigh[0], GradLowHigh[1]);
-	TempLabel = Glui->add_statictext_to_panel(rollout, str);
-	Glui->add_separator_to_panel(rollout);
-		Glui->add_separator_to_panel(rollout);
-
 	slider = Glui->add_slider_to_panel(rollout, true, GLUI_HSLIDER_FLOAT, DistLowHigh, DIST, (GLUI_Update_CB)Sliders);
 	slider->set_float_limits(DistLowHigh[0], DistLowHigh[1]);
 	slider->set_slider_val(DistLowHigh[0], DistLowHigh[1]);
 	slider->set_w(SLIDERWIDTH);
 	sprintf(str, DISTFORMAT, DistLowHigh[0], DistLowHigh[1]);
-	TempLabel = Glui->add_statictext_to_panel(rollout, str);
+	DistLabel = Glui->add_statictext_to_panel(rollout, str);
 	Glui->add_separator_to_panel(rollout);
 
 	Glui->add_checkbox( "Perspective", &WhichProjection );
@@ -953,6 +938,28 @@ InitGraphics( )
 				Nodes[i][j][k].x = 2. *(float)i / (float)N - 1.;
 				Nodes[i][j][k].y = 2. * (float)j / (float)N - 1.;
 				Nodes[i][j][k].z = 2. * (float)k / (float)N - 1.;
+				Nodes[i][j][k].t = Temperature(Nodes[i][j][k].x, Nodes[i][j][k].y, Nodes[i][j][k].z);
+				Nodes[i][j][k].rad = 1. / (5. * N);
+				Nodes[i][j][k].dist = sqrt(SQR(Nodes[i][j][k].x) + SQR(Nodes[i][j][k].y) + SQR(Nodes[i][j][k].z));
+
+				float hsv[3], rgb[3];
+				hsv[0] = 240. - (240 * (Nodes[i][j][k].t - TEMPMIN) / (TEMPMAX - TEMPMIN));
+				hsv[1] = hsv[2] = 1.;
+				HsvRgb(hsv, rgb);
+				Nodes[i][j][k].r = rgb[0];
+				Nodes[i][j][k].g = rgb[1];
+				Nodes[i][j][k].b = rgb[2];
+			}
+		}
+	}
+
+	for (int i = 0; i < N; i++)
+	{
+		for (int j = 0; j < N; j++)
+		{
+			for (int k = 0; k < N; k++)
+			{
+
 				//x gradient
 				if (i != 0 && i != N - 1)
 					Nodes[i][j][k].dTdx = (Nodes[i + 1][j][k].t - Nodes[i - 1][j][k].t) / (Nodes[i + 1][j][k].x - Nodes[i - 1][j][k].x);
@@ -976,18 +983,6 @@ InitGraphics( )
 					Nodes[i][j][k].dTdz = (Nodes[i][j][k].t - Nodes[i][j][k - 1].t) / (Nodes[i][j][k].z - Nodes[i][j][k - 1].z);
 
 				Nodes[i][j][k].grad = sqrt(SQR(Nodes[i][j][k].dTdx) + SQR(Nodes[i][j][k].dTdy) + SQR(Nodes[i][j][k].dTdz));
-				Nodes[i][j][k].t = Temperature(Nodes[i][j][k].x, Nodes[i][j][k].y, Nodes[i][j][k].z);
-				Nodes[i][j][k].rad = 1. / (5. * N);
-
-				Nodes[i][j][k].dist = sqrt(SQR(Nodes[i][j][k].x) + SQR(Nodes[i][j][k].y) + SQR(Nodes[i][j][k].z));
-
-				float hsv[3], rgb[3];
-				hsv[0] = 240. - (240 * (Nodes[i][j][k].t - TEMPMIN) / (TEMPMAX - TEMPMIN));
-				hsv[1] = hsv[2] = 1.;
-				HsvRgb(hsv, rgb);
-				Nodes[i][j][k].r = rgb[0];
-				Nodes[i][j][k].g = rgb[1];
-				Nodes[i][j][k].b = rgb[2];
 			}
 		}
 	}
@@ -1315,14 +1310,9 @@ Sliders( int id )
 			TempLabel->set_text(str);
 			break;
 
-		case GRAD:
-			sprintf(str, GRADFORMAT, GradLowHigh[0], GradLowHigh[1]);
-			TempLabel->set_text(str);
-			break;
-
 		case DIST:
-			sprintf(str, GRADFORMAT, DistLowHigh[0], DistLowHigh[1]);
-			TempLabel->set_text(str);
+			sprintf(str, DISTFORMAT, DistLowHigh[0], DistLowHigh[1]);
+			DistLabel->set_text(str);
 			break;
 	}
 

@@ -1,11 +1,10 @@
 ﻿  sample.cpp
-c:\users\volunteer\desktop\sample2017\glui.h(760): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
-c:\users\volunteer\desktop\sample2017\sample.cpp(503): warning C4305: 'argument': truncation from 'double' to 'GLfloat'
-c:\users\volunteer\desktop\sample2017\sample.cpp(953): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\volunteer\desktop\sample2017\sample.cpp(954): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\volunteer\desktop\sample2017\sample.cpp(955): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\volunteer\desktop\sample2017\sample.cpp(980): warning C4305: '=': truncation from 'double' to 'float'
-c:\users\volunteer\desktop\sample2017\sample.cpp(985): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-sample.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/OPT:LBR' specification
-  Sample.vcxproj -> C:\Users\Volunteer\Desktop\Sample2017\.\Debug\Sample.exe
-  Sample.vcxproj -> .\Debug/Sample.pdb (Full PDB)
+c:\users\sanlador\documents\github\scivis\cs 553\sample2017\glui.h(760): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+c:\users\sanlador\documents\github\scivis\cs 553\sample2017\sample.cpp(498): warning C4305: 'argument': truncation from 'double' to 'GLfloat'
+c:\users\sanlador\documents\github\scivis\cs 553\sample2017\sample.cpp(938): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\sanlador\documents\github\scivis\cs 553\sample2017\sample.cpp(939): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\sanlador\documents\github\scivis\cs 553\sample2017\sample.cpp(940): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\sanlador\documents\github\scivis\cs 553\sample2017\sample.cpp(942): warning C4305: '=': truncation from 'double' to 'float'
+c:\users\sanlador\documents\github\scivis\cs 553\sample2017\sample.cpp(946): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+sample.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/INCREMENTAL:NO' specification
+  Sample.vcxproj -> C:\Users\Sanlador\Documents\GitHub\SciVis\CS 553\Sample2017\.\Debug\Sample.exe
