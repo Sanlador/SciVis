@@ -206,7 +206,7 @@ const int SLIDERWIDTH = { 200 };
 
 struct node  Nodes[NX][NY][NZ];
 
-// non-constant global variables:
+// non-constant global variables
 
 int		ActiveButton;			// current button that is down
 GLuint		AxesList;			// list to hold the axes
@@ -218,6 +218,7 @@ int		GluiWindow;			// the glut id for the glui window
 int		Grayscale;;			// display in grayscale
 int		MainWindow;			// window id for main graphics window
 int		PointsOn;			// display points
+int		jitter;
 float		RotMatrix[4][4];	// set by glui rotation widget
 float		Scale, Scale2;			// scaling factor
 float		TransXYZ[3];		// set by glui translation widgets
@@ -269,6 +270,10 @@ void	Visibility( int );
 
 void	Axes( float );
 void	HsvRgb( float[3], float [3] );
+
+int   Npts[68];
+float Xdat[68][263];
+float Ydat[68][263];
 
 // main program:
 
@@ -494,6 +499,7 @@ Display( )
 
 	// create the object:
 
+	/*
 	//Mark inserted draw
 	glPointSize(1. / (5. * N));
 	glBegin(GL_POINTS);
@@ -529,11 +535,41 @@ Display( )
 				{
 					glColor3f(Nodes[i][j][k].r, Nodes[i][j][k].g, Nodes[i][j][k].b);
 				}
-				glVertex3f(Nodes[i][j][k].x, Nodes[i][j][k].y, Nodes[i][j][k].z);
+
+				if (jitter)
+				{
+					float xDist = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+					float yDist = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+					float zDist = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+					glVertex3f(xDist * Nodes[i][j][k].rad + Nodes[i][j][k].x, yDist * Nodes[i][j][k].rad + Nodes[i][j][k].y, zDist * Nodes[i][j][k].rad + Nodes[i][j][k].z);
+				}
+				else
+					glVertex3f(Nodes[i][j][k].x, Nodes[i][j][k].y, Nodes[i][j][k].z);
 			}
 		}
 	}
 	glEnd();
+	*/
+
+	float xPrime, yPrime;
+
+	for (int i = 0; i < 68; i++)
+	{
+		glBegin(GL_LINE_STRIP);
+		for (int j = 0; j < Npts[i]; j++)
+		{
+			float r = sqrt(SQR(Xdat[i][j]) + SQR(Ydat[i][j]));
+			float rPrime = r / (r + GLowHigh[0]);
+			xPrime = Xdat[i][j] / (r + GLowHigh[0]);
+			yPrime = Ydat[i][j] / (r + GLowHigh[0]);
+
+			float costheta = xPrime / r;
+			float sintheta = yPrime / r;
+
+			glVertex2f(xPrime , yPrime );
+		}
+		glEnd();
+	}
 
 	/*
 	glBegin( GL_QUADS );
@@ -804,6 +840,7 @@ InitGlui( )
 
 	GLUI_Panel * panel = Glui->add_panel(  "" );
 	Glui->add_checkbox_to_panel( panel, "Points", &PointsOn );
+	Glui->add_checkbox_to_panel(panel, "Jitter", &jitter);
 	Glui->add_checkbox( "Grayscale", &Grayscale );
 
 	GLUI_Rollout * rollout = Glui->add_rollout( "Range Sliders", true );
@@ -928,7 +965,7 @@ InitGlui( )
 void
 InitGraphics( )
 {
-
+	/*
 	for (int i = 0; i < N; i++)
 	{
 		for (int j = 0; j < N; j++)
@@ -939,7 +976,7 @@ InitGraphics( )
 				Nodes[i][j][k].y = 2. * (float)j / (float)N - 1.;
 				Nodes[i][j][k].z = 2. * (float)k / (float)N - 1.;
 				Nodes[i][j][k].t = Temperature(Nodes[i][j][k].x, Nodes[i][j][k].y, Nodes[i][j][k].z);
-				Nodes[i][j][k].rad = 1. / (5. * N);
+				Nodes[i][j][k].rad = 1. /  (1.f * N);
 				Nodes[i][j][k].dist = sqrt(SQR(Nodes[i][j][k].x) + SQR(Nodes[i][j][k].y) + SQR(Nodes[i][j][k].z));
 
 				float hsv[3], rgb[3];
@@ -952,7 +989,7 @@ InitGraphics( )
 			}
 		}
 	}
-
+	
 	for (int i = 0; i < N; i++)
 	{
 		for (int j = 0; j < N; j++)
@@ -986,6 +1023,25 @@ InitGraphics( )
 			}
 		}
 	}
+
+	*/
+	FILE *fp = fopen("proj04.dat", "r");
+	if (fp == NULL)
+	{
+		fprintf(stderr, "Cannot open 'proj07.dat' !\n");
+		exit(1);
+	}
+
+	for (int i = 0; i < 68; i++)
+	{
+		fscanf(fp, "%d", &Npts[i]);
+		for (int j = 0; j < Npts[i]; j++)
+		{
+			fscanf(fp, "%f %f", &Xdat[i][j], &Ydat[i][j]);
+		}
+	}
+	fclose(fp);
+
 	// request the display modes:
 	// ask for red-green-blue-alpha color, double-buffering, and z-buffering:
 
@@ -1219,7 +1275,8 @@ Reset( )
 	AxesOn = 1;
 	DebugOn = 0;
 	DepthCueOn = 0;
-	Grayscale = GLUITRUE;
+	Grayscale = GLUIFALSE;
+	jitter = GLUIFALSE;
 	PointsOn = GLUITRUE;
 	Scale  = 1.0;
 	Scale2 = 0.0;

@@ -1,1 +1,5 @@
-﻿  Sample.vcxproj -> C:\Users\Sanlador\Documents\GitHub\SciVis\CS 553\Sample2017\.\Debug\Sample.exe
+﻿  sample.cpp
+c:\users\volunteer\documents\github\scivis\cs 553\sample2017\glui.h(760): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+sample.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/OPT:LBR' specification
+  Sample.vcxproj -> C:\Users\Volunteer\Documents\GitHub\SciVis\CS 553\Sample2017\.\Debug\Sample.exe
+  Sample.vcxproj -> .\Debug/Sample.pdb (Full PDB)
