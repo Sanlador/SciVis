@@ -172,6 +172,8 @@ const float RMIN = {  0.00 };
 const float RMAX = {  1.732f };
 const float GMIN = {  0.00 };
 const float GMAX = { 300.00 };
+const float KMIN = { 1.00 };
+const float KMAX = { 100.00 };
 
 
 const float SMIN = {   0.0 };
@@ -186,6 +188,7 @@ const int GRIDSKIP = { 4 };
 #define R	4
 #define G	5
 #define DIST 8
+#define K	9
 
 const char *SFORMAT = { "S: %.3f - %.3f" };
 const char *XFORMAT = { "X: %.3f - %.3f" };
@@ -193,6 +196,7 @@ const char *YFORMAT = { "Y: %.3f - %.3f" };
 const char *ZFORMAT = { "Z: %.3f - %.3f" };
 const char *RFORMAT = { "R: %.3f - %.3f" };
 const char *GFORMAT = { "G: %.3f - %.3f" };
+const char *KFORMAT = { "K: %.3f - %.3f" };
 
 const int SLIDERWIDTH = { 200 };
 
@@ -215,7 +219,8 @@ int		DebugOn;			// != 0 means to print debugging info
 int		DepthCueOn;			// != 0 means to use intensity depth cueing
 GLUI *		Glui;				// instance of glui window
 int		GluiWindow;			// the glut id for the glui window
-int		Grayscale;;			// display in grayscale
+int		Grayscale;			// display in grayscale
+int		Cartesian;
 int		MainWindow;			// window id for main graphics window
 int		PointsOn;			// display points
 int		jitter;
@@ -233,6 +238,7 @@ float		YLowHigh[2];
 float		ZLowHigh[2];
 float		RLowHigh[2];
 float		GLowHigh[2];
+float		KLowHigh[2];
 
 GLUI_StaticText * SLabel;
 GLUI_StaticText * XLabel;
@@ -240,6 +246,7 @@ GLUI_StaticText * YLabel;
 GLUI_StaticText * ZLabel;
 GLUI_StaticText * RLabel;
 GLUI_StaticText * GLabel;
+GLUI_StaticText * KLabel;
 
 
 // function prototypes:
@@ -500,7 +507,7 @@ Display( )
 	// create the object:
 
 	/*
-	//Mark inserted draw
+	//Mark Project 1/2
 	glPointSize(1. / (5. * N));
 	glBegin(GL_POINTS);
 	for (int i = 0; i < N; i++)
@@ -551,6 +558,8 @@ Display( )
 	glEnd();
 	*/
 
+
+	//MARK Project 4
 	float xPrime, yPrime;
 
 	for (int i = 0; i < 68; i++)
@@ -560,11 +569,17 @@ Display( )
 		{
 			float r = sqrt(SQR(Xdat[i][j]) + SQR(Ydat[i][j]));
 			float rPrime = r / (r + GLowHigh[0]);
-			xPrime = Xdat[i][j] / (r + GLowHigh[0]);
-			yPrime = Ydat[i][j] / (r + GLowHigh[0]);
+			xPrime = Xdat[i][j] / (r + KLowHigh[0]);
+			yPrime = Ydat[i][j] / (r + KLowHigh[0]);
 
 			float costheta = xPrime / r;
 			float sintheta = yPrime / r;
+
+			if (Cartesian)
+			{
+				xPrime = xPrime / sqrt(SQR(xPrime) + SQR(KLowHigh[0]));
+				yPrime = yPrime / sqrt(SQR(yPrime) + SQR(KLowHigh[0]));
+			}
 
 			glVertex2f(xPrime , yPrime );
 		}
@@ -842,17 +857,26 @@ InitGlui( )
 	Glui->add_checkbox_to_panel( panel, "Points", &PointsOn );
 	Glui->add_checkbox_to_panel(panel, "Jitter", &jitter);
 	Glui->add_checkbox( "Grayscale", &Grayscale );
+	Glui->add_checkbox("Cartesian", &Cartesian);
 
 	GLUI_Rollout * rollout = Glui->add_rollout( "Range Sliders", true );
-	GLUI_HSlider * slider = Glui->add_slider_to_panel( rollout, true, GLUI_HSLIDER_FLOAT, SLowHigh, S, (GLUI_Update_CB) Sliders );
+	GLUI_HSlider * slider = Glui->add_slider_to_panel(rollout, false, GLUI_HSLIDER_FLOAT, KLowHigh, K, (GLUI_Update_CB)Sliders);
+	slider->set_float_limits(KLowHigh[0], KLowHigh[1]);
+	slider->set_slider_val(KLowHigh[0], KLowHigh[1]);
+	slider->set_w(SLIDERWIDTH);
+	sprintf(str, KFORMAT, KLowHigh[0], KLowHigh[1]);
+	DistLabel = Glui->add_statictext_to_panel(rollout, str);
+	Glui->add_separator_to_panel(rollout);
+
+	/*GLUI_HSlider * slider = Glui->add_slider_to_panel( rollout, true, GLUI_HSLIDER_FLOAT, SLowHigh, S, (GLUI_Update_CB) Sliders );
 	slider->set_float_limits( SLowHigh[0], SLowHigh[1] );
 	slider->set_slider_val( SLowHigh[0], SLowHigh[1] );
 	slider->set_w( SLIDERWIDTH );
 	sprintf( str, SFORMAT, SLowHigh[0], SLowHigh[1] );
 	SLabel = Glui->add_statictext_to_panel( rollout, str );
-	Glui->add_separator_to_panel( rollout );
+	Glui->add_separator_to_panel( rollout );*/
 
-	slider = Glui->add_slider_to_panel( rollout, true, GLUI_HSLIDER_FLOAT, XLowHigh, X, (GLUI_Update_CB) Sliders );
+	slider = Glui->add_slider_to_panel( rollout, false, GLUI_HSLIDER_FLOAT, XLowHigh, X, (GLUI_Update_CB) Sliders );
 	slider->set_float_limits( XLowHigh[0], XLowHigh[1] );
 	slider->set_slider_val( XLowHigh[0], XLowHigh[1] );
 	slider->set_w( SLIDERWIDTH );
@@ -860,7 +884,7 @@ InitGlui( )
 	XLabel = Glui->add_statictext_to_panel( rollout, str );
 	Glui->add_separator_to_panel( rollout );
 
-	slider = Glui->add_slider_to_panel( rollout, true, GLUI_HSLIDER_FLOAT, YLowHigh, Y, (GLUI_Update_CB) Sliders );
+	slider = Glui->add_slider_to_panel( rollout, false, GLUI_HSLIDER_FLOAT, YLowHigh, Y, (GLUI_Update_CB) Sliders );
 	slider->set_float_limits( YLowHigh[0], YLowHigh[1] );
 	slider->set_slider_val( YLowHigh[0], YLowHigh[1] );
 	slider->set_w( SLIDERWIDTH );
@@ -868,7 +892,7 @@ InitGlui( )
 	YLabel = Glui->add_statictext_to_panel( rollout, str );
 	Glui->add_separator_to_panel( rollout );
 
-	slider = Glui->add_slider_to_panel( rollout, true, GLUI_HSLIDER_FLOAT, ZLowHigh, Z, (GLUI_Update_CB) Sliders );
+	/*slider = Glui->add_slider_to_panel( rollout, true, GLUI_HSLIDER_FLOAT, ZLowHigh, Z, (GLUI_Update_CB) Sliders );
 	slider->set_float_limits( ZLowHigh[0], ZLowHigh[1] );
 	slider->set_slider_val( ZLowHigh[0], ZLowHigh[1] );
 	slider->set_w( SLIDERWIDTH );
@@ -908,7 +932,9 @@ InitGlui( )
 	slider->set_w(SLIDERWIDTH);
 	sprintf(str, DISTFORMAT, DistLowHigh[0], DistLowHigh[1]);
 	DistLabel = Glui->add_statictext_to_panel(rollout, str);
-	Glui->add_separator_to_panel(rollout);
+	Glui->add_separator_to_panel(rollout);*/
+
+	
 
 	Glui->add_checkbox( "Perspective", &WhichProjection );
 
@@ -1276,6 +1302,7 @@ Reset( )
 	DebugOn = 0;
 	DepthCueOn = 0;
 	Grayscale = GLUIFALSE;
+	Cartesian = GLUIFALSE;
 	jitter = GLUIFALSE;
 	PointsOn = GLUITRUE;
 	Scale  = 1.0;
@@ -1305,6 +1332,8 @@ Reset( )
 	RLowHigh[1] = RMAX;
 	GLowHigh[0] = GMIN;
 	GLowHigh[1] = GMAX;
+	KLowHigh[0] = KMIN;
+	KLowHigh[1] = KMAX;
 }
 
 
@@ -1369,6 +1398,11 @@ Sliders( int id )
 
 		case DIST:
 			sprintf(str, DISTFORMAT, DistLowHigh[0], DistLowHigh[1]);
+			DistLabel->set_text(str);
+			break;
+
+		case K:
+			sprintf(str, KFORMAT, KLowHigh[0], KLowHigh[1]);
 			DistLabel->set_text(str);
 			break;
 	}
