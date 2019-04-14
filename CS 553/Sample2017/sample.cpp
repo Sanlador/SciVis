@@ -162,10 +162,10 @@ const float CONTOUR_WIDTH = { 2. };
 
 // ranges and scalar function:
 
-const float XMIN = { -1.00 };
-const float XMAX = {  1.00 };
-const float YMIN = { -1.00 };
-const float YMAX = {  1.00 };
+const float XMIN = { -30.00 };
+const float XMAX = {  30.00 };
+const float YMIN = { -10.00 };
+const float YMAX = {  10.00 };
 const float ZMIN = { -1.00 };
 const float ZMAX = {  1.00 };
 const float RMIN = {  0.00 };
@@ -567,10 +567,10 @@ Display( )
 		glBegin(GL_LINE_STRIP);
 		for (int j = 0; j < Npts[i]; j++)
 		{
-			float r = sqrt(SQR(Xdat[i][j]) + SQR(Ydat[i][j]));
+			float r = sqrt(SQR(Xdat[i][j] + XLowHigh[0]) + SQR(Ydat[i][j] + YLowHigh[0]));
 			float rPrime = r / (r + GLowHigh[0]);
-			xPrime = Xdat[i][j] / (r + KLowHigh[0]);
-			yPrime = Ydat[i][j] / (r + KLowHigh[0]);
+			xPrime = (Xdat[i][j] + XLowHigh[0]) / (r + KLowHigh[0]);
+			yPrime = (Ydat[i][j] + YLowHigh[0]) / (r + KLowHigh[0]);
 
 			float costheta = xPrime / r;
 			float sintheta = yPrime / r;
@@ -581,7 +581,7 @@ Display( )
 				yPrime = yPrime / sqrt(SQR(yPrime) + SQR(KLowHigh[0]));
 			}
 
-			glVertex2f(xPrime , yPrime );
+			glVertex2f(xPrime, yPrime);
 		}
 		glEnd();
 	}
